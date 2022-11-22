@@ -19,8 +19,7 @@ def get_access_token(client_id):
 
 def get_response_api(client_id, token, resource):
     access_token = token
-    init_url = 'https://api.moltin.com'
-    general_url = init_url + resource
+    general_url = 'https://api.moltin.com' + resource
     status_code = False
     while not status_code:
         headers = {'Authorization': f'Bearer {access_token}'}
@@ -31,11 +30,11 @@ def get_response_api(client_id, token, resource):
         except requests.exceptions.HTTPError as err:
             access_token = get_access_token(client_id)
             os.environ['ACCESS_TOKEN'] = access_token
-            for row in FileInput('.env', inplace=True):
-                if row[:2] == 'ACC':
+            for n, row in enumerate(FileInput('.env', inplace=True)):
+                if n == 3:
                     row = f'ACCESS_TOKEN={access_token}'
                 else:
-                    row = row[:-2]
+                    row = row[:-1]
                 print(row)
 
     return response.json()
@@ -52,4 +51,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
