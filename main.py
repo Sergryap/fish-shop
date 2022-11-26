@@ -100,13 +100,20 @@ def generate_customer_token(token, email, password):
 
 def call_api_func(api_func, client_id, client_secret, *args, **kwargs):
     status_code = False
+    count = 0
     while not status_code:
         try:
             status_code = True
             result = api_func(*args, **kwargs)
-        except requests.exceptions.HTTPError:
+        except requests.exceptions.HTTPError as err:
+            count += 1
+            if count == 4:
+                msg = f'Ошибка: {err}'
+                print(msg)
+                return msg
             status_code = False
             access_token = get_access_token(client_id, client_secret)
+            kwargs['token'] = access_token
             os.environ['ACCESS_TOKEN'] = access_token
             for n, row in enumerate(FileInput('.env', inplace=True)):
                 if n == 0:
