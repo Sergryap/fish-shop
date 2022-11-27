@@ -28,6 +28,25 @@ def get_products(token):
     return response.json()
 
 
+def get_product_price(token, price_book_id, product_price_id):
+    url = f'https://api.moltin.com/pcm/pricebooks/{price_book_id}/prices/{product_price_id}'
+    headers = {'Authorization': f'Bearer {token}'}
+    response = requests.get(url, headers=headers)
+    # response.raise_for_status()
+
+    return response.json()
+
+
+def get_product(token, product_id):
+    url = f'https://api.moltin.com/pcm/products/{product_id}'
+    headers = {'Authorization': f'Bearer {token}'}
+    params = {'include': 'component_products'}
+    response = requests.get(url, headers=headers, params=params)
+    response.raise_for_status()
+
+    return response.json()
+
+
 def get_cart(token, reference):
     url = f'https://api.moltin.com/v2/carts/{reference}'
     headers = {
@@ -134,7 +153,9 @@ def main():
     customer_id = env('CUSTOMER_ID')
     customer_email = env('CUSTOMER_EMAIL')
     customer_password = env('CUSTOMER_PASSWORD')
-    products = call_api_func(get_products, client_id, client_secret, token=access_token)
+    # products = call_api_func(get_products, client_id, client_secret, token=access_token)
+    product = call_api_func(get_product, client_id, client_secret, token=access_token, product_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
+    # price = call_api_func(get_product_price, client_id, client_secret, token=access_token, price_book_id='419f9492-4b11-4605-b16d-a8ab8938b080', product_price_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
     # customer_token = call_api_func(generate_customer_token, client_id, client_secret, token=access_token, email=customer_email, password=customer_password)
     # cart = call_api_func(create_cart, client_id, client_secret, token=access_token, name='Cart', description='test-1')
     # cart = call_api_func(get_cart, client_id, client_secret, token=access_token, reference='Cart')
@@ -145,7 +166,7 @@ def main():
     #     quantity=1,
     #     reference='Cart'
     # )
-    pprint(products)
+    pprint(product)
 
 
 if __name__ == '__main__':

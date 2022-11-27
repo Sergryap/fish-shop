@@ -25,7 +25,12 @@ def get_markup():
     custom_keyboard = []
     for product in products['data']:
         custom_keyboard.append(
-            [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])]
+            [
+                InlineKeyboardButton(
+                    product['attributes']['name'],
+                    callback_data=f"{product['id']}:{product['attributes']['price']['USD']['amount']}"
+                )
+            ]
         )
 
     return InlineKeyboardMarkup(
@@ -39,7 +44,26 @@ def start(update: Update, context: CallbackContext):
         text='Please choose:',
         reply_markup=get_markup()
     )
-    return "ECHO"
+    return "HANDLE_MENU"
+
+
+def info_product(update: Update, context: CallbackContext):
+    product_id = update.callback_query.data.split(':')[0]
+    price = update.callback_query.data.split(':')[1]
+    product = api.call_api_func(
+        api.get_product,
+        os.getenv('CLIENT_ID'),
+        os.getenv('CLIENT_SECRET'),
+        os.getenv('ACCESS_TOKEN'),
+        product_id=product_id
+    )
+    name = product['data']['attributes']['name']
+    description = product['data']['attributes'].get('description', '')
+    msg = f'{name}\n{description}\n${price}'
+    pprint(product)
+    chat_id = update.callback_query.message.chat_id
+    context.bot.send_message(chat_id, msg)
+    return "START"
 
 
 def echo(update: Update, context: CallbackContext):
@@ -77,7 +101,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
 
     states_functions = {
         'START': start,
-        'ECHO': echo
+        'ECHO': echo,
+        'HANDLE_MENU': info_product
     }
     state_handler = states_functions[user_state]
     # Если вы вдруг не заметите, что python-telegram-bot перехватывает ошибки.
