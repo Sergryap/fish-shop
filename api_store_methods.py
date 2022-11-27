@@ -117,22 +117,21 @@ def generate_customer_token(token, email, password):
     return response.json()
 
 
-def call_api_func(api_func, client_id, client_secret, token, *args, **kwargs):
-    status_code = False
+def method_api(func, *args, **kwargs):
+    status_token = False
     count = 0
-    while not status_code:
+    while not status_token:
         try:
-            status_code = True
-            result = api_func(token, *args, **kwargs)
+            status_token = True
+            result = func(os.getenv('ACCESS_TOKEN'), *args, **kwargs)
         except requests.exceptions.HTTPError as err:
             count += 1
             if count == 4:
                 msg = f'Ошибка: {err}'
                 print(msg)
                 return msg
-            status_code = False
-            access_token = get_access_token(client_id, client_secret)
-            token = access_token
+            status_token = False
+            access_token = get_access_token(os.getenv('CLIENT_ID'), os.getenv('CLIENT_SECRET'))
             os.environ['ACCESS_TOKEN'] = access_token
             for n, row in enumerate(FileInput('.env', inplace=True)):
                 if n == 0:
@@ -153,20 +152,19 @@ def main():
     customer_id = env('CUSTOMER_ID')
     customer_email = env('CUSTOMER_EMAIL')
     customer_password = env('CUSTOMER_PASSWORD')
-    # products = call_api_func(get_products, client_id, client_secret, token=access_token)
-    product = call_api_func(get_product, client_id, client_secret, token=access_token, product_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
-    # price = call_api_func(get_product_price, client_id, client_secret, token=access_token, price_book_id='419f9492-4b11-4605-b16d-a8ab8938b080', product_price_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
-    # customer_token = call_api_func(generate_customer_token, client_id, client_secret, token=access_token, email=customer_email, password=customer_password)
-    # cart = call_api_func(create_cart, client_id, client_secret, token=access_token, name='Cart', description='test-1')
-    # cart = call_api_func(get_cart, client_id, client_secret, token=access_token, reference='Cart')
-    # product_to_cart = call_api_func(
-    #     add_product_to_cart, client_id, client_secret,
-    #     token=access_token,
+    products = method_api(get_products)
+    # product = method_api(get_product, product_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
+    # price = method_api(get_product_price, price_book_id='419f9492-4b11-4605-b16d-a8ab8938b080', product_price_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
+    # customer_token = method_api(generate_customer_token, email=customer_email, password=customer_password)
+    # cart = method_api(create_cart, name='Cart', description='test-1')
+    # cart = method_api(get_cart, reference='Cart')
+    # product_to_cart = method_api(
+    #     add_product_to_cart,
     #     product_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c',
     #     quantity=1,
     #     reference='Cart'
     # )
-    pprint(product)
+    pprint(products)
 
 
 if __name__ == '__main__':

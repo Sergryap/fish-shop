@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 import redis
@@ -13,25 +14,27 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 _database = None
 
 
-def get_markup():
-    products = api.call_api_func(
-        api.get_products,
-        os.getenv('CLIENT_ID'),
-        os.getenv('CLIENT_SECRET'),
-        os.getenv('ACCESS_TOKEN')
-    )
+def get_markup_and_data_products(context: CallbackContext):
+    products = api.method_api(api.get_products)
     pprint(products)
-
+    data_products = {}
     custom_keyboard = []
     for product in products['data']:
-        custom_keyboard.append(
-            [
-                InlineKeyboardButton(
-                    product['attributes']['name'],
-                    callback_data=f"{product['id']}:{product['attributes']['price']['USD']['amount']}"
-                )
-            ]
+        data_products.update(
+            {
+                product['id']: {
+                    'name': product['attributes']['name'],
+                    'price': product['attributes']['price']['USD']['amount'],
+                    'description': product['attributes'].get('description', 'Описание не задано'),
+                    'sku': product['attributes']['sku']
+                }
+            }
         )
+        custom_keyboard.append(
+            [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])]
+        )
+    redis_connect = context.dispatcher.redis
+    redis_connect.set('data_products', json.dumps(data_products))
 
     return InlineKeyboardMarkup(
         inline_keyboard=custom_keyboard,
@@ -42,25 +45,19 @@ def get_markup():
 def start(update: Update, context: CallbackContext):
     update.message.reply_text(
         text='Please choose:',
-        reply_markup=get_markup()
+        reply_markup=get_markup_and_data_products(context)
     )
     return "HANDLE_MENU"
 
 
 def info_product(update: Update, context: CallbackContext):
-    product_id = update.callback_query.data.split(':')[0]
-    price = update.callback_query.data.split(':')[1]
-    product = api.call_api_func(
-        api.get_product,
-        os.getenv('CLIENT_ID'),
-        os.getenv('CLIENT_SECRET'),
-        os.getenv('ACCESS_TOKEN'),
-        product_id=product_id
-    )
-    name = product['data']['attributes']['name']
-    description = product['data']['attributes'].get('description', '')
+    redis_connect = context.dispatcher.redis
+    data_products = json.loads(redis_connect.get('data_products'))
+    product_id = update.callback_query.data
+    price = data_products[product_id]['price']
+    name = data_products[product_id]['name']
+    description = data_products[product_id]['description']
     msg = f'{name}\n\n${price}\n\n{description}'
-    pprint(product)
     chat_id = update.callback_query.message.chat_id
     context.bot.send_message(chat_id, msg)
     return "START"
