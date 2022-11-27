@@ -1,17 +1,45 @@
 import os
 import logging
 import redis
+import telegram
+import api_store_methods as api
 
+from pprint import pprint
 from environs import Env
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Filters, Updater, CallbackContext
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
 _database = None
 
 
+def get_markup():
+    products = api.call_api_func(
+        api.get_products,
+        os.getenv('CLIENT_ID'),
+        os.getenv('CLIENT_SECRET'),
+        os.getenv('ACCESS_TOKEN')
+    )
+    pprint(products)
+
+    custom_keyboard = [
+        [InlineKeyboardButton("Option 1", callback_data='1'),
+         InlineKeyboardButton("Option 2", callback_data='2')],
+        [InlineKeyboardButton("Option 3", callback_data='3')]
+    ]
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=custom_keyboard,
+        resize_keyboard=True
+    )
+
+
 def start(update: Update, context: CallbackContext):
-    update.message.reply_text(text='Привет!')
+    update.message.reply_text(
+        text='Please choose:',
+        reply_markup=get_markup()
+    )
+
     return "ECHO"
 
 
