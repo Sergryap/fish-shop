@@ -22,11 +22,11 @@ def get_markup():
     )
     pprint(products)
 
-    custom_keyboard = [
-        [InlineKeyboardButton("Option 1", callback_data='1'),
-         InlineKeyboardButton("Option 2", callback_data='2')],
-        [InlineKeyboardButton("Option 3", callback_data='3')]
-    ]
+    custom_keyboard = []
+    for product in products['data']:
+        custom_keyboard.append(
+            [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])]
+        )
 
     return InlineKeyboardMarkup(
         inline_keyboard=custom_keyboard,
@@ -39,7 +39,6 @@ def start(update: Update, context: CallbackContext):
         text='Please choose:',
         reply_markup=get_markup()
     )
-
     return "ECHO"
 
 
