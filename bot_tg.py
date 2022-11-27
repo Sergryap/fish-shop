@@ -3,24 +3,25 @@ import logging
 import redis
 
 from environs import Env
-from telegram.ext import Filters, Updater
+from telegram import Update
+from telegram.ext import Filters, Updater, CallbackContext
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
 _database = None
 
 
-def start(bot, update):
+def start(update: Update, context: CallbackContext):
     update.message.reply_text(text='Привет!')
     return "ECHO"
 
 
-def echo(bot, update):
+def echo(update: Update, context: CallbackContext):
     users_reply = update.message.text
     update.message.reply_text(users_reply)
     return "ECHO"
 
 
-def handle_users_reply(bot, update):
+def handle_users_reply(update: Update, context: CallbackContext):
     """
     Функция, которая запускается при любом сообщении от пользователя и решает как его обработать.
     Эта функция запускается в ответ на эти действия пользователя:
@@ -33,7 +34,7 @@ def handle_users_reply(bot, update):
     поэтому по этой фразе выставляется стартовое состояние.
     Если пользователь захочет начать общение с ботом заново, он также может воспользоваться этой командой.
     """
-    db = get_database_connection()
+    db = get_database_connection(context.dispatcher.redis)
     if update.message:
         user_reply = update.message.text
         chat_id = update.message.chat_id
@@ -56,32 +57,32 @@ def handle_users_reply(bot, update):
     # Оставляю этот try...except, чтобы код не падал молча.
     # Этот фрагмент можно переписать.
     try:
-        next_state = state_handler(bot, update)
+        next_state = state_handler(update, context)
         db.set(chat_id, next_state)
     except Exception as err:
         print(err)
 
 
-def get_database_connection():
+def get_database_connection(redis_db):
     """
     Возвращает конекшн с базой данных Redis, либо создаёт новый, если он ещё не создан.
     """
     global _database
     if _database is None:
-
-        database_password = os.getenv('DATABASE_PASSWORD')
-        database_host = os.getenv('DATABASE_HOST')
-        database_port = os.getenv('DATABASE_PORT')
-        _database = redis.Redis(host=database_host, port=database_port, password=database_password)
+        _database = redis_db
     return _database
 
 
 if __name__ == '__main__':
     env = Env()
     env.read_env()
-    token = os.getenv('TELEGRAM_TOKEN')
+    token = env('TELEGRAM_TOKEN')
+    database_password = env('DATABASE_PASSWORD')
+    database_host = env('DATABASE_HOST')
+    database_port = env('DATABASE_PORT')
     updater = Updater(token)
     dispatcher = updater.dispatcher
+    dispatcher.redis = redis.Redis(host=database_host, port=database_port, password=database_password)
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
