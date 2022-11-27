@@ -59,7 +59,7 @@ def info_product(update: Update, context: CallbackContext):
     )
     name = product['data']['attributes']['name']
     description = product['data']['attributes'].get('description', '')
-    msg = f'{name}\n{description}\n${price}'
+    msg = f'{name}\n\n${price}\n\n{description}'
     pprint(product)
     chat_id = update.callback_query.message.chat_id
     context.bot.send_message(chat_id, msg)
