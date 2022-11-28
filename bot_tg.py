@@ -26,7 +26,8 @@ def get_markup_and_data_products(context: CallbackContext):
                     'name': product['attributes']['name'],
                     'price': product['attributes']['price']['USD']['amount'],
                     'description': product['attributes'].get('description', 'Описание не задано'),
-                    'sku': product['attributes']['sku']
+                    'sku': product['attributes']['sku'],
+                    'main_image_id': product['relationships']['main_image']['data']['id']
                 }
             }
         )
@@ -50,16 +51,23 @@ def start(update: Update, context: CallbackContext):
     return "HANDLE_MENU"
 
 
-def info_product(update: Update, context: CallbackContext):
+def send_info_product(update: Update, context: CallbackContext):
+    message_id = update.effective_message.message_id
+    chat_id = update.callback_query.message.chat_id
+    product_id = update.callback_query.data
     redis_connect = context.dispatcher.redis
     data_products = json.loads(redis_connect.get('data_products'))
-    product_id = update.callback_query.data
     price = data_products[product_id]['price']
     name = data_products[product_id]['name']
     description = data_products[product_id]['description']
+    main_image_id = data_products[product_id]['main_image_id']
+    link_image = api.method_api(api.get_file, file_id=main_image_id)['data']['link']['href']
     msg = f'{name}\n\n${price}\n\n{description}'
-    chat_id = update.callback_query.message.chat_id
-    context.bot.send_message(chat_id, msg)
+    photo = context.bot.send_photo(chat_id, photo=link_image, caption=msg)
+    context.bot.delete_message(chat_id, message_id)
+    # photo_id = photo.photo[0].file_id
+    # data_products['link_image'] = photo_id
+
     return "START"
 
 
@@ -99,7 +107,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
     states_functions = {
         'START': start,
         'ECHO': echo,
-        'HANDLE_MENU': info_product
+        'HANDLE_MENU': send_info_product
     }
     state_handler = states_functions[user_state]
     # Если вы вдруг не заметите, что python-telegram-bot перехватывает ошибки.

@@ -47,6 +47,64 @@ def get_product(token, product_id):
     return response.json()
 
 
+def create_main_image_relationship(token, product_id, image_id):
+    """Create a Product relationship to a single File, which can be used as a main_image"""
+    url = f'https://api.moltin.com/v2/products/{product_id}/relationships/main-image'
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+    json_data = {
+        'data': {
+            'type': 'main_image',
+            'id': image_id
+        }
+    }
+    response = requests.post(url, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
+def create_file_relationships(token, product_id, image_ids: list):
+    """Create a product relationship to one or more Files"""
+    url = f'https://api.moltin.com/v2/products/{product_id}/relationships/files'
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+    json_data = {
+        'data': [{'type': 'file', 'id': image_id} for image_id in image_ids]
+    }
+    response = requests.post(url, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
+def upload_image(token, path_to_file):
+
+    with open(path_to_file, 'rb') as file:
+        url = 'https://api.moltin.com/v2/files'
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'multipart/form-data',
+        }
+        files = {'file': file}
+        response = requests.post(url, headers=headers, files=files)
+        # response.raise_for_status()
+        return response.json()
+
+
+def get_file(token, file_id):
+    url = f'https://api.moltin.com/v2/files/{file_id}'
+    headers = {'Authorization': f'Bearer {token}'}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
 def get_cart(token, reference):
     url = f'https://api.moltin.com/v2/carts/{reference}'
     headers = {
@@ -145,14 +203,7 @@ def method_api(func, *args, **kwargs):
 def main():
     env = Env()
     env.read_env()
-    client_id = env('CLIENT_ID')
-    client_secret = env('CLIENT_SECRET')
-    access_token = env('ACCESS_TOKEN')
-    customer_token = env('CUSTOMER_TOKEN')
-    customer_id = env('CUSTOMER_ID')
-    customer_email = env('CUSTOMER_EMAIL')
-    customer_password = env('CUSTOMER_PASSWORD')
-    products = method_api(get_products)
+    # products = method_api(get_products)
     # product = method_api(get_product, product_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
     # price = method_api(get_product_price, price_book_id='419f9492-4b11-4605-b16d-a8ab8938b080', product_price_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
     # customer_token = method_api(generate_customer_token, email=customer_email, password=customer_password)
@@ -164,7 +215,9 @@ def main():
     #     quantity=1,
     #     reference='Cart'
     # )
-    pprint(products)
+    # image_test = method_api(upload_image, path_to_file='fish-images/768730.jpg')
+    file = method_api(get_file, file_id='69d6c65a-96b3-4ca0-9855-984ac9489cc5')
+    pprint(file)
 
 
 if __name__ == '__main__':
