@@ -116,6 +116,17 @@ def get_cart(token, reference):
     return response.json()
 
 
+def get_cart_items(token, reference):
+    url = f'https://api.moltin.com/v2/carts/{reference}/items'
+    headers = {
+        'Authorization': f'Bearer {token}',
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
 def create_cart(token, name, description='fish-order'):
     url = 'https://api.moltin.com/v2/carts'
     headers = {
@@ -207,17 +218,18 @@ def main():
     # product = method_api(get_product, product_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
     # price = method_api(get_product_price, price_book_id='419f9492-4b11-4605-b16d-a8ab8938b080', product_price_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
     # customer_token = method_api(generate_customer_token, email=customer_email, password=customer_password)
-    # cart = method_api(create_cart, name='Cart', description='test-1')
-    # cart = method_api(get_cart, reference='Cart')
-    # product_to_cart = method_api(
-    #     add_product_to_cart,
-    #     product_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c',
-    #     quantity=1,
-    #     reference='Cart'
-    # )
+    # cart = method_api(create_cart, name='cart-1', description='test-1')
+    # cart = method_api(get_cart, reference=1642719191)
+    product_to_cart = method_api(
+        add_product_to_cart,
+        product_id='fbc2e1f6-b909-4536-977c-2663025009d5',
+        quantity=2,
+        reference=2136765232534435
+    )
+    # cart = method_api(get_cart_items, 2136765232534435)
     # image_test = method_api(upload_image, path_to_file='fish-images/768730.jpg')
-    file = method_api(get_file, file_id='69d6c65a-96b3-4ca0-9855-984ac9489cc5')
-    pprint(file)
+    # file = method_api(get_file, file_id='69d6c65a-96b3-4ca0-9855-984ac9489cc5')
+    pprint(product_to_cart)
 
 
 if __name__ == '__main__':

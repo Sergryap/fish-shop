@@ -16,7 +16,7 @@ _database = None
 
 def get_markup_and_data_products(context: CallbackContext):
     products = api.method_api(api.get_products)
-    pprint(products)
+    # pprint(products)
     data_products = {}
     custom_keyboard = []
     for product in products['data']:
@@ -66,7 +66,14 @@ def send_info_product(update: Update, context: CallbackContext):
     link_image = api.method_api(api.get_file, file_id=main_image_id)['data']['link']['href']
     msg = f'{name}\n\n${price}\n\n{description}'
     custom_keyboard = [
-        [InlineKeyboardButton('Назад', callback_data='/start')]
+        [
+            InlineKeyboardButton('1 кг', callback_data=f'1_{product_id}'),
+            InlineKeyboardButton('5 кг', callback_data=f'5_{product_id}'),
+            InlineKeyboardButton('10 кг', callback_data=f'10_{product_id}'),
+        ],
+        [
+            InlineKeyboardButton('Назад', callback_data='/start')
+        ]
     ]
     context.bot.send_photo(
         chat_id,
@@ -82,7 +89,20 @@ def send_info_product(update: Update, context: CallbackContext):
 
 
 def handle_description(update: Update, context: CallbackContext):
-    pass
+    callback_data = update.callback_query.data
+    quantity = int(callback_data.split('_')[0])
+    product_id = callback_data.split('_')[1]
+    print(quantity, product_id, sep='\n')
+    api.method_api(api.get_cart, reference=update.effective_user.id)
+    api.method_api(
+        api.add_product_to_cart,
+        product_id=product_id,
+        quantity=quantity,
+        reference=update.effective_user.id
+    )
+    cart = api.method_api(api.get_cart_items, update.effective_user.id)
+    pprint(cart)
+    return "HANDLE_DESCRIPTION"
 
 
 def echo(update: Update, context: CallbackContext):
