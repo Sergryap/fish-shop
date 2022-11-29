@@ -28,6 +28,15 @@ def get_products(token):
     return response.json()
 
 
+def get_pcm_products(token):
+    url = 'https://api.moltin.com/pcm/products'
+    headers = {'Authorization': f'Bearer {token}'}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
 def get_product_price(token, price_book_id, product_price_id):
     url = f'https://api.moltin.com/pcm/pricebooks/{price_book_id}/prices/{product_price_id}'
     headers = {'Authorization': f'Bearer {token}'}
@@ -165,6 +174,15 @@ def add_product_to_cart(token, product_id, quantity, reference):
     return response.json()
 
 
+def remove_cart_item(token, reference, product_id):
+    url = f'https://api.moltin.com/v2/carts/{reference}/items/{product_id}'
+    headers = {'Authorization': f'Bearer {token}'}
+    response = requests.delete(url, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
 def generate_customer_token(token, email, password):
     access_token = token
     url = 'https://api.moltin.com/v2/customers/tokens'
@@ -214,7 +232,7 @@ def method_api(func, *args, **kwargs):
 def main():
     env = Env()
     env.read_env()
-    # products = method_api(get_products)
+    products = method_api(get_products)
     # product = method_api(get_product, product_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
     # price = method_api(get_product_price, price_book_id='419f9492-4b11-4605-b16d-a8ab8938b080', product_price_id='4f405bed-cb79-42cc-aeed-4fd8fe83c81c')
     # customer_token = method_api(generate_customer_token, email=customer_email, password=customer_password)
@@ -226,10 +244,10 @@ def main():
     #     quantity=2,
     #     reference=1642719191
     # )
-    cart = method_api(get_cart_items, reference=1642719191)
+    # cart = method_api(get_cart_items, reference=1642719191)
     # image_test = method_api(upload_image, path_to_file='fish-images/768730.jpg')
     # file = method_api(get_file, file_id='69d6c65a-96b3-4ca0-9855-984ac9489cc5')
-    pprint(cart)
+    pprint(products)
 
 
 if __name__ == '__main__':

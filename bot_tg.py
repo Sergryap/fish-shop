@@ -17,7 +17,6 @@ _database = None
 
 def get_markup_and_data_products(context: CallbackContext):
     products = api.method_api(api.get_products)
-    # pprint(products)
     data_products = {}
     custom_keyboard = []
     for product in products['data']:
@@ -25,7 +24,7 @@ def get_markup_and_data_products(context: CallbackContext):
             {
                 product['id']: {
                     'name': product['attributes']['name'],
-                    'price': product['attributes']['price']['USD']['amount'],
+                    'price': product['meta']['display_price']['without_tax']['formatted'],
                     'description': product['attributes'].get('description', 'Описание не задано'),
                     'sku': product['attributes']['sku'],
                     'main_image_id': product['relationships']['main_image']['data']['id']
@@ -66,7 +65,11 @@ def send_info_product(update: Update, context: CallbackContext):
     description = data_products[product_id]['description']
     main_image_id = data_products[product_id]['main_image_id']
     link_image = api.method_api(api.get_file, file_id=main_image_id)['data']['link']['href']
-    msg = f'{name}\n\n${price}\n\n{description}'
+    msg = f'''
+        {name}
+        {price} per kg
+        {description}
+        '''
     custom_keyboard = [
         [
             InlineKeyboardButton('1 кг', callback_data=f'1_{product_id}'),
@@ -77,19 +80,17 @@ def send_info_product(update: Update, context: CallbackContext):
             InlineKeyboardButton('Корзина', callback_data='/cart')
         ],
         [
-            InlineKeyboardButton('Назад', callback_data='/start')
+            InlineKeyboardButton('Меню', callback_data='/start')
         ],
 
     ]
     context.bot.send_photo(
         chat_id,
         photo=link_image,
-        caption=msg,
+        caption=dedent(msg),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=custom_keyboard, resize_keyboard=True)
     )
     context.bot.delete_message(chat_id, message_id)
-    # photo_id = photo.photo[0].file_id
-    # data_products['link_image'] = photo_id
 
     return "HANDLE_DESCRIPTION"
 
@@ -98,7 +99,6 @@ def handle_description(update: Update, context: CallbackContext):
     callback_data = update.callback_query.data
     quantity = int(callback_data.split('_')[0])
     product_id = callback_data.split('_')[1]
-    print(quantity, product_id, sep='\n')
     api.method_api(api.get_cart, reference=update.effective_user.id)
     api.method_api(
         api.add_product_to_cart,
@@ -106,8 +106,6 @@ def handle_description(update: Update, context: CallbackContext):
         quantity=quantity,
         reference=update.effective_user.id
     )
-    cart = api.method_api(api.get_cart_items, update.effective_user.id)
-    pprint(cart)
     return "HANDLE_DESCRIPTION"
 
 
@@ -118,6 +116,7 @@ def get_cart_info(update: Update, context: CallbackContext):
     )
     cart_items = api.method_api(api.get_cart_items, update.effective_user.id)
     msg = ''
+    custom_keyboard = []
     for item in cart_items['data']:
         msg += f'''
         {item['name']}
@@ -125,20 +124,55 @@ def get_cart_info(update: Update, context: CallbackContext):
         {item['meta']['display_price']['without_tax']['unit']['formatted']} per kg
         {item['quantity']}kg in cart for {item['meta']['display_price']['without_tax']['value']['formatted']}
         '''
+        custom_keyboard.append(
+            [InlineKeyboardButton(f'Убрать из корзины {item["name"]}', callback_data=item['id'])]
+        )
+    custom_keyboard.append([InlineKeyboardButton('В меню', callback_data='/start')])
     msg = f'''
         {msg}        
         Total: {total_value}
         '''
-
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=dedent(msg))
+        text=dedent(msg),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=custom_keyboard, resize_keyboard=True)
+    )
+
+    return 'HANDLER_CART'
 
 
-def echo(update: Update, context: CallbackContext):
-    users_reply = update.message.text
-    update.message.reply_text(users_reply)
-    return "ECHO"
+def handler_cart(update: Update, context: CallbackContext):
+    id_cart_item = update.callback_query.data
+    api.method_api(api.remove_cart_item, update.effective_user.id, id_cart_item)
+    total_value = (
+        api.method_api(api.get_cart, update.effective_user.id)
+        ['data']['meta']['display_price']['without_tax']['formatted']
+    )
+    cart_items = api.method_api(api.get_cart_items, update.effective_user.id)
+    msg = ''
+    custom_keyboard = []
+    for item in cart_items['data']:
+        msg += f'''
+            {item['name']}
+            {item['description']}
+            {item['meta']['display_price']['without_tax']['unit']['formatted']} per kg
+            {item['quantity']}kg in cart for {item['meta']['display_price']['without_tax']['value']['formatted']}
+            '''
+        custom_keyboard.append(
+            [InlineKeyboardButton(f'Убрать из корзины {item["name"]}', callback_data=item['id'])]
+        )
+    custom_keyboard.append([InlineKeyboardButton('В меню', callback_data='/start')])
+    msg = f'''
+            {msg}        
+            Total: {total_value}
+            '''
+    context.bot.edit_message_text(
+        chat_id=update.effective_chat.id,
+        message_id=update.effective_message.message_id,
+        text=dedent(msg),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=custom_keyboard, resize_keyboard=True)
+    )
+    return 'HANDLER_CART'
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
@@ -172,10 +206,10 @@ def handle_users_reply(update: Update, context: CallbackContext):
 
     states_functions = {
         'START': start,
-        'ECHO': echo,
         'HANDLE_MENU': send_info_product,
         'HANDLE_DESCRIPTION': handle_description,
-        'CART_INFO': get_cart_info
+        'CART_INFO': get_cart_info,
+        'HANDLER_CART':  handler_cart
     }
     state_handler = states_functions[user_state]
     # Если вы вдруг не заметите, что python-telegram-bot перехватывает ошибки.
