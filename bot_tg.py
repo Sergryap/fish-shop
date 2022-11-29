@@ -128,6 +128,7 @@ def get_cart_info(update: Update, context: CallbackContext):
             [InlineKeyboardButton(f'Убрать из корзины {item["name"]}', callback_data=item['id'])]
         )
     custom_keyboard.append([InlineKeyboardButton('В меню', callback_data='/start')])
+    custom_keyboard.append([InlineKeyboardButton('Оплата', callback_data='/pay')])
     msg = f'''
         {msg}        
         Total: {total_value}
@@ -175,6 +176,24 @@ def handler_cart(update: Update, context: CallbackContext):
     return 'HANDLER_CART'
 
 
+def waiting_email(update: Update, context: CallbackContext):
+    if update.callback_query and update.callback_query.data == '/pay':
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text='Введите ваш email',
+        )
+        return 'WAITING_EMAIL'
+    else:
+        email_user = update.message.text
+        print(email_user)
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text='Спасибо. Мы свяжемся с Вами!\nPlease choose:',
+            reply_markup=get_markup_and_data_products(context)
+        )
+        return 'HANDLE_MENU'
+
+
 def handle_users_reply(update: Update, context: CallbackContext):
     """
     Функция, которая запускается при любом сообщении от пользователя и решает как его обработать.
@@ -201,6 +220,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
         user_state = 'START'
     elif user_reply == '/cart':
         user_state = 'CART_INFO'
+    elif user_reply == '/pay':
+        user_state = 'WAITING_EMAIL'
     else:
         user_state = db.get(chat_id).decode("utf-8")
 
@@ -209,7 +230,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'HANDLE_MENU': send_info_product,
         'HANDLE_DESCRIPTION': handle_description,
         'CART_INFO': get_cart_info,
-        'HANDLER_CART':  handler_cart
+        'HANDLER_CART':  handler_cart,
+        'WAITING_EMAIL': waiting_email
     }
     state_handler = states_functions[user_state]
     # Если вы вдруг не заметите, что python-telegram-bot перехватывает ошибки.
