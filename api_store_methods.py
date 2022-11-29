@@ -220,16 +220,16 @@ def main():
     # customer_token = method_api(generate_customer_token, email=customer_email, password=customer_password)
     # cart = method_api(create_cart, name='cart-1', description='test-1')
     # cart = method_api(get_cart, reference=1642719191)
-    product_to_cart = method_api(
-        add_product_to_cart,
-        product_id='fbc2e1f6-b909-4536-977c-2663025009d5',
-        quantity=2,
-        reference=2136765232534435
-    )
-    # cart = method_api(get_cart_items, 2136765232534435)
+    # product_to_cart = method_api(
+    #     add_product_to_cart,
+    #     product_id='fbc2e1f6-b909-4536-977c-2663025009d5',
+    #     quantity=2,
+    #     reference=1642719191
+    # )
+    cart = method_api(get_cart_items, reference=1642719191)
     # image_test = method_api(upload_image, path_to_file='fish-images/768730.jpg')
     # file = method_api(get_file, file_id='69d6c65a-96b3-4ca0-9855-984ac9489cc5')
-    pprint(product_to_cart)
+    pprint(cart)
 
 
 if __name__ == '__main__':

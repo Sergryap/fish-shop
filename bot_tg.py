@@ -4,6 +4,7 @@ import logging
 import redis
 import telegram
 import api_store_methods as api
+from textwrap import dedent
 
 from pprint import pprint
 from environs import Env
@@ -34,6 +35,7 @@ def get_markup_and_data_products(context: CallbackContext):
         custom_keyboard.append(
             [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])]
         )
+    custom_keyboard.append([InlineKeyboardButton('Корзина', callback_data='/cart')])
     redis_connect = context.dispatcher.redis
     redis_connect.set('data_products', json.dumps(data_products))
 
@@ -72,8 +74,12 @@ def send_info_product(update: Update, context: CallbackContext):
             InlineKeyboardButton('10 кг', callback_data=f'10_{product_id}'),
         ],
         [
+            InlineKeyboardButton('Корзина', callback_data='/cart')
+        ],
+        [
             InlineKeyboardButton('Назад', callback_data='/start')
-        ]
+        ],
+
     ]
     context.bot.send_photo(
         chat_id,
@@ -103,6 +109,30 @@ def handle_description(update: Update, context: CallbackContext):
     cart = api.method_api(api.get_cart_items, update.effective_user.id)
     pprint(cart)
     return "HANDLE_DESCRIPTION"
+
+
+def get_cart_info(update: Update, context: CallbackContext):
+    total_value = (
+        api.method_api(api.get_cart, update.effective_user.id)
+        ['data']['meta']['display_price']['without_tax']['formatted']
+    )
+    cart_items = api.method_api(api.get_cart_items, update.effective_user.id)
+    msg = ''
+    for item in cart_items['data']:
+        msg += f'''
+        {item['name']}
+        {item['description']}
+        {item['meta']['display_price']['without_tax']['unit']['formatted']} per kg
+        {item['quantity']}kg in cart for {item['meta']['display_price']['without_tax']['value']['formatted']}
+        '''
+    msg = f'''
+        {msg}        
+        Total: {total_value}
+        '''
+
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=dedent(msg))
 
 
 def echo(update: Update, context: CallbackContext):
@@ -135,6 +165,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
         return
     if user_reply == '/start':
         user_state = 'START'
+    elif user_reply == '/cart':
+        user_state = 'CART_INFO'
     else:
         user_state = db.get(chat_id).decode("utf-8")
 
@@ -142,7 +174,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'START': start,
         'ECHO': echo,
         'HANDLE_MENU': send_info_product,
-        'HANDLE_DESCRIPTION': handle_description
+        'HANDLE_DESCRIPTION': handle_description,
+        'CART_INFO': get_cart_info
     }
     state_handler = states_functions[user_state]
     # Если вы вдруг не заметите, что python-telegram-bot перехватывает ошибки.
