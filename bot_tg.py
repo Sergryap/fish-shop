@@ -1,13 +1,9 @@
 import json
-import os
 import logging
 import redis
 import requests
-import telegram
 import api_store_methods as api
 from textwrap import dedent
-
-from pprint import pprint
 from environs import Env
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Filters, Updater, CallbackContext
@@ -128,7 +124,7 @@ def get_cart_info(update: Update, context: CallbackContext):
         custom_keyboard.append(
             [InlineKeyboardButton(f'Убрать из корзины {item["name"]}', callback_data=item['id'])]
         )
-    custom_keyboard.append([InlineKeyboardButton('В меню', callback_data='/start')])
+    custom_keyboard.append([InlineKeyboardButton('Меню', callback_data='/start')])
     custom_keyboard.append([InlineKeyboardButton('Оплата', callback_data='/pay')])
     msg = f'''
         {msg}        
@@ -163,7 +159,7 @@ def handler_cart(update: Update, context: CallbackContext):
         custom_keyboard.append(
             [InlineKeyboardButton(f'Убрать из корзины {item["name"]}', callback_data=item['id'])]
         )
-    custom_keyboard.append([InlineKeyboardButton('В меню', callback_data='/start')])
+    custom_keyboard.append([InlineKeyboardButton('Меню', callback_data='/start')])
     msg = f'''
             {msg}        
             Total: {total_value}
