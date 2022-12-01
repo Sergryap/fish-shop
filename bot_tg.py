@@ -9,6 +9,9 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Filters, Updater, CallbackContext
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
+from logger import BotLogsHandler
+logger = logging.getLogger('telegram_logging')
+
 _database = None
 
 
@@ -69,9 +72,9 @@ def send_info_product(update: Update, context: CallbackContext):
         '''
     custom_keyboard = [
         [
-            InlineKeyboardButton('1 кг', callback_data=f'1_{product_id}'),
-            InlineKeyboardButton('5 кг', callback_data=f'5_{product_id}'),
-            InlineKeyboardButton('10 кг', callback_data=f'10_{product_id}'),
+            InlineKeyboardButton('1 кг', callback_data=f'1:{product_id}'),
+            InlineKeyboardButton('5 кг', callback_data=f'5:{product_id}'),
+            InlineKeyboardButton('10 кг', callback_data=f'10:{product_id}'),
         ],
         [
             InlineKeyboardButton('Корзина', callback_data='/cart')
@@ -94,8 +97,8 @@ def send_info_product(update: Update, context: CallbackContext):
 
 def handle_description(update: Update, context: CallbackContext):
     callback_data = update.callback_query.data
-    quantity = int(callback_data.split('_')[0])
-    product_id = callback_data.split('_')[1]
+    quantity = int(callback_data.split(':')[0])
+    product_id = callback_data.split(':')[1]
     api.method_api(api.get_cart, reference=update.effective_user.id)
     api.method_api(
         api.add_product_to_cart,
@@ -242,15 +245,22 @@ def get_database_connection(redis_db):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
     env = Env()
     env.read_env()
+
     token = env('TELEGRAM_TOKEN')
     database_password = env('DATABASE_PASSWORD')
     database_host = env('DATABASE_HOST')
     database_port = env('DATABASE_PORT')
     updater = Updater(token)
+    updater.logger.addHandler(BotLogsHandler(
+        token=env('TELEGRAM_TOKEN_LOG'),
+        chat_id=env('CHAT_ID_LOG')
+    ))
     dispatcher = updater.dispatcher
     dispatcher.redis = redis.Redis(host=database_host, port=database_port, password=database_password)
+    updater.logger.warning('Бот Telegram "fish-shop" запущен')
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
