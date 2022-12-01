@@ -2,6 +2,7 @@ import json
 import os
 import logging
 import redis
+import requests
 import telegram
 import api_store_methods as api
 from textwrap import dedent
@@ -185,7 +186,10 @@ def waiting_email(update: Update, context: CallbackContext):
         return 'WAITING_EMAIL'
     else:
         email_user = update.message.text
-        print(email_user)
+        try:
+            api.method_api(api.create_customer, update.effective_user.username, email_user)
+        except requests.exceptions.HTTPError:
+            print('Клиент уже существует')
         context.bot.send_message(
             chat_id=update.effective_chat.id,
             text='Спасибо. Мы свяжемся с Вами!\nPlease choose:',
@@ -195,18 +199,7 @@ def waiting_email(update: Update, context: CallbackContext):
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
-    """
-    Функция, которая запускается при любом сообщении от пользователя и решает как его обработать.
-    Эта функция запускается в ответ на эти действия пользователя:
-        * Нажатие на inline-кнопку в боте
-        * Отправка сообщения боту
-        * Отправка команды боту
-    Она получает стейт пользователя из базы данных и запускает соответствующую функцию-обработчик (хэндлер).
-    Функция-обработчик возвращает следующее состояние, которое записывается в базу данных.
-    Если пользователь только начал пользоваться ботом, Telegram форсит его написать "/start",
-    поэтому по этой фразе выставляется стартовое состояние.
-    Если пользователь захочет начать общение с ботом заново, он также может воспользоваться этой командой.
-    """
+
     db = get_database_connection(context.dispatcher.redis)
     if update.message:
         user_reply = update.message.text
@@ -234,9 +227,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'WAITING_EMAIL': waiting_email
     }
     state_handler = states_functions[user_state]
-    # Если вы вдруг не заметите, что python-telegram-bot перехватывает ошибки.
-    # Оставляю этот try...except, чтобы код не падал молча.
-    # Этот фрагмент можно переписать.
+
     try:
         next_state = state_handler(update, context)
         db.set(chat_id, next_state)
