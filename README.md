@@ -36,7 +36,7 @@ DATABASE_PORT=<Порт базы Redis>
 
 ### Порядок установки бота:
 
-1. Загрузите данные в директорию для установки:
+1. Загрузите данные:
 
 ```
 git clone https://github.com/Sergryap/fish-shop.git
