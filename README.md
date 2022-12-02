@@ -1,6 +1,8 @@
 ## On-line магазин в виде бота Telegram
+#### Пример работающего бота: [Bot](https://t.me/fish_sergryap_bot)
+![InShot_20221202_084151472-min](https://user-images.githubusercontent.com/99894266/205211114-6be8fa90-f683-4990-85e1-f06a69b238a4.gif)
 
-Интернет магазин создан на базе API сервиса ![Moltin](https://www.moltin.com/).
+Интернет магазин создан на базе API сервиса [Moltin](https://www.moltin.com/).
 
 В представленной программе реализованы основные методы взаимодействия покупателя с магазином:
 
