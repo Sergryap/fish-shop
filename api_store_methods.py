@@ -220,25 +220,12 @@ def generate_customer_token(token, email, password):
 
 
 def method_api(func, *args, **kwargs):
-    status_token = False
-    count = 0
-    while not status_token:
+    token_status = False
+    while not token_status:
         try:
-            status_token = True
+            token_status = True
             result = func(os.getenv('ACCESS_TOKEN'), *args, **kwargs)
-        except requests.exceptions.HTTPError as err:
-            count += 1
-            if count == 4:
-                msg = f'Ошибка: {err}'
-                print(msg)
-                return msg
-            status_token = False
-            access_token = get_access_token(os.getenv('CLIENT_ID'), os.getenv('CLIENT_SECRET'))
-            os.environ['ACCESS_TOKEN'] = access_token
-            for n, row in enumerate(FileInput('.env', inplace=True), start=1):
-                if n == 1:
-                    row = f'ACCESS_TOKEN={access_token}'
-                else:
-                    row = row[:-1]
-                print(row)
+        except requests.exceptions.HTTPError:
+            token_status = False
+            os.environ['ACCESS_TOKEN'] = get_access_token(os.getenv('CLIENT_ID'), os.getenv('CLIENT_SECRET'))
     return result
