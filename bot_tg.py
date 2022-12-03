@@ -16,7 +16,7 @@ _database = None
 
 
 def get_markup_and_data_products(context: CallbackContext):
-    products = api.method_api(api.get_products)
+    products = api.get_products()
     data_products = {}
     custom_keyboard = []
     for product in products['data']:
@@ -64,7 +64,7 @@ def send_info_product(update: Update, context: CallbackContext):
     name = data_products[product_id]['name']
     description = data_products[product_id]['description']
     main_image_id = data_products[product_id]['main_image_id']
-    link_image = api.method_api(api.get_file, file_id=main_image_id)['data']['link']['href']
+    link_image = api.get_file(file_id=main_image_id)['data']['link']['href']
     msg = f'''
         {name}
         {price} per kg
@@ -99,9 +99,8 @@ def handle_description(update: Update, context: CallbackContext):
     callback_data = update.callback_query.data
     quantity = int(callback_data.split(':')[0])
     product_id = callback_data.split(':')[1]
-    api.method_api(api.get_cart, reference=update.effective_user.id)
-    api.method_api(
-        api.add_product_to_cart,
+    api.get_cart(reference=update.effective_user.id)
+    api.add_product_to_cart(
         product_id=product_id,
         quantity=quantity,
         reference=update.effective_user.id
@@ -111,10 +110,10 @@ def handle_description(update: Update, context: CallbackContext):
 
 def get_cart_info(update: Update, context: CallbackContext):
     total_value = (
-        api.method_api(api.get_cart, update.effective_user.id)
+        api.get_cart(update.effective_user.id)
         ['data']['meta']['display_price']['without_tax']['formatted']
     )
-    cart_items = api.method_api(api.get_cart_items, update.effective_user.id)
+    cart_items = api.get_cart_items(update.effective_user.id)
     msg = ''
     custom_keyboard = []
     for item in cart_items['data']:
@@ -144,12 +143,12 @@ def get_cart_info(update: Update, context: CallbackContext):
 
 def handler_cart(update: Update, context: CallbackContext):
     id_cart_item = update.callback_query.data
-    api.method_api(api.remove_cart_item, update.effective_user.id, id_cart_item)
+    api.remove_cart_item(update.effective_user.id, id_cart_item)
     total_value = (
-        api.method_api(api.get_cart, update.effective_user.id)
+        api.get_cart(update.effective_user.id)
         ['data']['meta']['display_price']['without_tax']['formatted']
     )
-    cart_items = api.method_api(api.get_cart_items, update.effective_user.id)
+    cart_items = api.get_cart_items(update.effective_user.id)
     msg = ''
     custom_keyboard = []
     for item in cart_items['data']:
@@ -186,7 +185,7 @@ def waiting_email(update: Update, context: CallbackContext):
     else:
         email_user = update.message.text
         try:
-            api.method_api(api.create_customer, update.effective_user.username, email_user)
+            api.create_customer(update.effective_user.username, email_user)
         except requests.exceptions.HTTPError:
             print('Клиент уже существует')
         context.bot.send_message(
