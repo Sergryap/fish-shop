@@ -2,7 +2,7 @@ import json
 import logging
 import redis
 import requests
-import api_store_methods as api
+import api_store as api
 from textwrap import dedent
 from environs import Env
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
