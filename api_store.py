@@ -1,8 +1,6 @@
 import os
 import time
-
 import requests
-from environs import Env
 
 
 def get_products():
@@ -45,7 +43,7 @@ def get_product(product_id):
 def create_main_image_relationship(product_id, image_id):
     """Create a Product relationship to a single File, which can be used as a main_image"""
     update_token()
-    url = f'https://api.moltin.com/v2/products/{product_id}/relationships/main-image'
+    url = f'https://api.moltin.com/v2/products/{product_id}/relationships/main_image'
     headers = {
         'Authorization': f'Bearer {os.environ["ACCESS_TOKEN"]}',
         'Content-Type': 'application/json',
@@ -56,7 +54,7 @@ def create_main_image_relationship(product_id, image_id):
             'id': image_id
         }
     }
-    response = requests.post(url, headers=headers)
+    response = requests.post(url, headers=headers, json=json_data)
     response.raise_for_status()
     return response.json()
 
@@ -72,7 +70,7 @@ def create_file_relationships(product_id, image_ids: list):
     json_data = {
         'data': [{'type': 'file', 'id': image_id} for image_id in image_ids]
     }
-    response = requests.post(url, headers=headers)
+    response = requests.post(url, headers=headers, json=json_data)
     response.raise_for_status()
     return response.json()
 
@@ -236,9 +234,3 @@ def update_token():
         token_data = response.json()
         os.environ['TOKEN_EXPIRES'] = str(token_data['expires'] - 60)
         os.environ['ACCESS_TOKEN'] = token_data['access_token']
-
-
-if __name__ == '__main__':
-    env = Env()
-    env.read_env()
-    update_token()

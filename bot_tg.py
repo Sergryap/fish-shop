@@ -1,4 +1,3 @@
-import json
 import logging
 import redis
 import requests
@@ -13,29 +12,14 @@ from logger import BotLogsHandler
 logger = logging.getLogger('telegram_logging')
 
 
-def get_markup_and_data_products(context: CallbackContext):
+def get_menu_markup():
     products = api.get_products()
-    data_products = {}
     custom_keyboard = []
     for product in products['data']:
-        data_products.update(
-            {
-                product['id']: {
-                    'name': product['attributes']['name'],
-                    'price': product['meta']['display_price']['without_tax']['formatted'],
-                    'description': product['attributes'].get('description', 'Описание не задано'),
-                    'sku': product['attributes']['sku'],
-                    'main_image_id': product['relationships']['main_image']['data']['id']
-                }
-            }
-        )
         custom_keyboard.append(
             [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])]
         )
     custom_keyboard.append([InlineKeyboardButton('Корзина', callback_data='/cart')])
-    redis_connect = context.dispatcher.redis
-    redis_connect.set('data_products', json.dumps(data_products))
-
     return InlineKeyboardMarkup(
         inline_keyboard=custom_keyboard,
         resize_keyboard=True
@@ -46,23 +30,25 @@ def start(update: Update, context: CallbackContext):
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text='Please choose:',
-        reply_markup=get_markup_and_data_products(context)
+        reply_markup=get_menu_markup()
     )
 
     return "HANDLE_MENU"
 
 
 def send_info_product(update: Update, context: CallbackContext):
+    if update.callback_query.data == '/cart':
+        return get_cart_info(update, context)
     message_id = update.effective_message.message_id
     chat_id = update.effective_chat.id
     product_id = update.callback_query.data
-    redis_connect = context.dispatcher.redis
-    data_products = json.loads(redis_connect.get('data_products'))
-    price = data_products[product_id]['price']
-    name = data_products[product_id]['name']
-    description = data_products[product_id]['description']
-    main_image_id = data_products[product_id]['main_image_id']
+    product_data = [data for data in api.get_products()['data'] if data['id'] == product_id][0]
+    name = product_data['attributes']['name']
+    price = product_data['meta']['display_price']['without_tax']['formatted']
+    description = product_data['attributes'].get('description', 'Описание не задано')
+    main_image_id = product_data['relationships']['main_image']['data']['id']
     link_image = api.get_file(file_id=main_image_id)['data']['link']['href']
+
     msg = f'''
         {name}
         {price} per kg
@@ -95,6 +81,8 @@ def send_info_product(update: Update, context: CallbackContext):
 
 def handle_description(update: Update, context: CallbackContext):
     callback_data = update.callback_query.data
+    if callback_data == '/cart':
+        return get_cart_info(update, context)
     quantity = int(callback_data.split(':')[0])
     product_id = callback_data.split(':')[1]
     api.get_cart(reference=update.effective_user.id)
@@ -140,6 +128,12 @@ def get_cart_info(update: Update, context: CallbackContext):
 
 
 def handler_cart(update: Update, context: CallbackContext):
+    if update.callback_query.data == '/pay':
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text='Введите ваш email',
+        )
+        return 'WAITING_EMAIL'
     id_cart_item = update.callback_query.data
     api.remove_cart_item(update.effective_user.id, id_cart_item)
     total_value = (
@@ -174,24 +168,17 @@ def handler_cart(update: Update, context: CallbackContext):
 
 
 def waiting_email(update: Update, context: CallbackContext):
-    if update.callback_query and update.callback_query.data == '/pay':
-        context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text='Введите ваш email',
-        )
-        return 'WAITING_EMAIL'
-    else:
-        email_user = update.message.text
-        try:
-            api.create_customer(update.effective_user.username, email_user)
-        except requests.exceptions.HTTPError:
-            print('Клиент уже существует')
-        context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text='Спасибо. Мы свяжемся с Вами!\nPlease choose:',
-            reply_markup=get_markup_and_data_products(context)
-        )
-        return 'HANDLE_MENU'
+    email_user = update.message.text
+    try:
+        api.create_customer(update.effective_user.username, email_user)
+    except requests.exceptions.HTTPError:
+        print('Клиент уже существует')
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text='Спасибо. Мы свяжемся с Вами!\nPlease choose:',
+        reply_markup=get_menu_markup()
+    )
+    return 'HANDLE_MENU'
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
@@ -207,10 +194,6 @@ def handle_users_reply(update: Update, context: CallbackContext):
         return
     if user_reply == '/start':
         user_state = 'START'
-    elif user_reply == '/cart':
-        user_state = 'CART_INFO'
-    elif user_reply == '/pay':
-        user_state = 'WAITING_EMAIL'
     else:
         user_state = db.get(chat_id).decode("utf-8")
 
