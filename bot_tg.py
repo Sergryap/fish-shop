@@ -206,7 +206,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'WAITING_EMAIL': waiting_email
     }
     state_handler = states_functions[user_state]
-
+    api.check_token()
     try:
         next_state = state_handler(update, context)
         db.set(chat_id, next_state)
