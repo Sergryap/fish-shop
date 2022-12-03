@@ -12,8 +12,6 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from logger import BotLogsHandler
 logger = logging.getLogger('telegram_logging')
 
-_database = None
-
 
 def get_markup_and_data_products(context: CallbackContext):
     products = api.get_products()
@@ -198,7 +196,7 @@ def waiting_email(update: Update, context: CallbackContext):
 
 def handle_users_reply(update: Update, context: CallbackContext):
 
-    db = get_database_connection(context.dispatcher.redis)
+    db = context.dispatcher.redis
     if update.message:
         user_reply = update.message.text
         chat_id = update.message.chat_id
@@ -231,16 +229,6 @@ def handle_users_reply(update: Update, context: CallbackContext):
         db.set(chat_id, next_state)
     except Exception as err:
         print(err)
-
-
-def get_database_connection(redis_db):
-    """
-    Возвращает конекшн с базой данных Redis, либо создаёт новый, если он ещё не создан.
-    """
-    global _database
-    if _database is None:
-        _database = redis_db
-    return _database
 
 
 if __name__ == '__main__':
