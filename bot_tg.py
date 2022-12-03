@@ -209,11 +209,11 @@ def handle_users_reply(update: Update, context: CallbackContext):
     api.check_token()
     try:
         next_state = state_handler(update, context)
-        db.set(chat_id, next_state)
-    except requests.exceptions.HTTPError:
-        api.check_token(err=True)
     except Exception as err:
+        api.check_token(error=True)
+        next_state = state_handler(update, context)
         print(err)
+    db.set(chat_id, next_state)
 
 
 if __name__ == '__main__':
