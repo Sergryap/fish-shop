@@ -203,8 +203,8 @@ def generate_customer_token(email, password):
     return response.json()
 
 
-def check_token():
-    if not os.environ.get('TOKEN_EXPIRES') or int(os.environ['TOKEN_EXPIRES']) < int(time.time()):
+def check_token(err=False):
+    if not os.environ.get('TOKEN_EXPIRES') or int(os.environ['TOKEN_EXPIRES']) < int(time.time()) or err:
         url = 'https://api.moltin.com/oauth/access_token'
         client_id = os.getenv('CLIENT_ID')
         client_secret = os.getenv('CLIENT_SECRET')
